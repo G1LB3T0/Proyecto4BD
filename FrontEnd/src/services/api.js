@@ -5,10 +5,22 @@ const API_URL = 'http://localhost:3000/api';
 export const api = {
     // Libros
     getBooks: () => axios.get(`${API_URL}/books`),
-    getBookById: (id) => axios.get(`${API_URL}/books/${id}`),
-    createBook: (book) => axios.post(`${API_URL}/books`, book),
-    updateBook: (id, book) => axios.put(`${API_URL}/books/${id}`, book),
-    deleteBook: (id) => axios.delete(`${API_URL}/books/${id}`),
+    getBookById: (id) => axios.get(`${API_URL}/books/${Number(id)}`),
+    createBook: (bookData) => axios.post(`${API_URL}/books`, {
+        titulo: bookData.titulo,
+        autor: bookData.autor,
+        editorial: bookData.editorial,
+        isbn: bookData.isbn,
+        año_publicacion: bookData.anio_publicacion
+    }),
+    updateBook: (id, bookData) => axios.put(`${API_URL}/books/${Number(id)}`, {
+        titulo: bookData.titulo,
+        autor: bookData.autor,
+        editorial: bookData.editorial,
+        isbn: bookData.isbn,
+        año_publicacion: bookData.anio_publicacion
+    }),
+    deleteBook: (id) => axios.delete(`${API_URL}/books/${Number(id)}`),
 
     // Usuarios
     getUsers: () => axios.get(`${API_URL}/users`),
