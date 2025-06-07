@@ -1,0 +1,257 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model bibliotecarios {
+  id                  Int                   @id @default(autoincrement())
+  nombre              String                @db.VarChar(255)
+  telefono            String?               @db.VarChar(20)
+  email               String                @unique @db.VarChar(100)
+  historial_prestamos historial_prestamos[]
+  prestamos           prestamos[]
+}
+
+model categorias {
+  id                Int                 @id @default(autoincrement())
+  nombre            String              @unique @db.VarChar(100)
+  descripcion       String?
+  libros_categorias libros_categorias[]
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model compras {
+  id              Int         @id @default(autoincrement())
+  proveedor_id    Int
+  libro_id        Int
+  cantidad        Int
+  precio_unitario Decimal?    @db.Decimal(10, 2)
+  fecha_compra    DateTime    @default(dbgenerated("CURRENT_DATE")) @db.Date
+  libros          libros      @relation(fields: [libro_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  proveedores     proveedores @relation(fields: [proveedor_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model edificios {
+  id     Int     @id @default(autoincrement())
+  nombre String  @unique @db.VarChar(100)
+  salas  salas[]
+}
+
+model ejemplares {
+  id                  Int                   @id @default(autoincrement())
+  libro_id            Int
+  sala_id             Int
+  estado              estado_ejemplar       @default(disponible)
+  libros              libros                @relation(fields: [libro_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  salas               salas                 @relation(fields: [sala_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  historial_prestamos historial_prestamos[]
+  historial_reservas  historial_reservas[]
+  inventarios         inventarios[]
+  prestamos           prestamos[]
+  reservas            reservas[]
+}
+
+model eventos {
+  id          Int         @id @default(autoincrement())
+  nombre      String      @db.VarChar(255)
+  descripcion String?
+  fecha       DateTime    @db.Date
+  tipo        tipo_evento
+  sala_id     Int?
+  salas       salas?      @relation(fields: [sala_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model historial_prestamos {
+  id               Int             @id @default(autoincrement())
+  usuario_id       Int
+  ejemplar_id      Int
+  bibliotecario_id Int
+  fecha_prestamo   DateTime        @db.Date
+  fecha_devolucion DateTime        @db.Date
+  estado           estado_prestamo
+  bibliotecarios   bibliotecarios  @relation(fields: [bibliotecario_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  ejemplares       ejemplares      @relation(fields: [ejemplar_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  usuarios         usuarios        @relation(fields: [usuario_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model historial_reservas {
+  id               Int            @id @default(autoincrement())
+  usuario_id       Int
+  ejemplar_id      Int
+  fecha_reserva    DateTime       @db.Date
+  fecha_expiracion DateTime       @db.Date
+  estado           estado_reserva
+  ejemplares       ejemplares     @relation(fields: [ejemplar_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  usuarios         usuarios       @relation(fields: [usuario_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model inventarios {
+  id                  Int        @id @default(autoincrement())
+  ejemplar_id         Int
+  cantidad            Int
+  fecha_actualizacion DateTime   @default(dbgenerated("CURRENT_DATE")) @db.Date
+  ejemplares          ejemplares @relation(fields: [ejemplar_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model libros {
+  id                 Int                  @id @default(autoincrement())
+  titulo             String               @db.VarChar(255)
+  autor              String               @db.VarChar(255)
+  editorial          String?              @db.VarChar(255)
+  isbn               String?              @unique @db.VarChar(13)
+  a_o_publicacion    Int?                 @map("año_publicacion")
+  compras            compras[]
+  ejemplares         ejemplares[]
+  libros_categorias  libros_categorias[]
+  proveedores_libros proveedores_libros[]
+}
+
+model libros_categorias {
+  libro_id     Int
+  categoria_id Int
+  categorias   categorias @relation(fields: [categoria_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  libros       libros     @relation(fields: [libro_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@id([libro_id, categoria_id])
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model multas {
+  id            Int        @id @default(autoincrement())
+  usuario_id    Int
+  prestamo_id   Int
+  monto         Decimal    @db.Decimal(10, 2)
+  tipo          tipo_multa
+  fecha_emision DateTime   @default(dbgenerated("CURRENT_DATE")) @db.Date
+  estado        String?    @default("pendiente") @db.VarChar(20)
+  prestamos     prestamos  @relation(fields: [prestamo_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  usuarios      usuarios   @relation(fields: [usuario_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model prestamos {
+  id               Int             @id @default(autoincrement())
+  usuario_id       Int
+  ejemplar_id      Int
+  bibliotecario_id Int
+  fecha_prestamo   DateTime        @default(dbgenerated("CURRENT_DATE")) @db.Date
+  fecha_devolucion DateTime        @db.Date
+  estado           estado_prestamo @default(pendiente)
+  multas           multas[]
+  bibliotecarios   bibliotecarios  @relation(fields: [bibliotecario_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  ejemplares       ejemplares      @relation(fields: [ejemplar_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  usuarios         usuarios        @relation(fields: [usuario_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model proveedores {
+  id                 Int                  @id @default(autoincrement())
+  nombre             String               @unique @db.VarChar(255)
+  direccion          String?              @db.VarChar(255)
+  telefono           String?              @db.VarChar(20)
+  email              String?              @db.VarChar(100)
+  compras            compras[]
+  proveedores_libros proveedores_libros[]
+}
+
+model proveedores_libros {
+  proveedor_id Int
+  libro_id     Int
+  libros       libros      @relation(fields: [libro_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  proveedores  proveedores @relation(fields: [proveedor_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@id([proveedor_id, libro_id])
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model reservas {
+  id               Int            @id @default(autoincrement())
+  usuario_id       Int
+  ejemplar_id      Int
+  fecha_reserva    DateTime       @default(dbgenerated("CURRENT_DATE")) @db.Date
+  fecha_expiracion DateTime       @db.Date
+  estado           estado_reserva @default(pendiente)
+  ejemplares       ejemplares     @relation(fields: [ejemplar_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  usuarios         usuarios       @relation(fields: [usuario_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model roles {
+  id             Int              @id @default(autoincrement())
+  nombre         String           @unique @db.VarChar(50)
+  usuarios_roles usuarios_roles[]
+}
+
+model salas {
+  id          Int          @id @default(autoincrement())
+  edificio_id Int
+  nombre      String       @db.VarChar(100)
+  capacidad   Int?
+  ejemplares  ejemplares[]
+  eventos     eventos[]
+  edificios   edificios    @relation(fields: [edificio_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@unique([edificio_id, nombre])
+}
+
+model usuarios {
+  id                  Int                   @id @default(autoincrement())
+  nombre              String                @db.VarChar(255)
+  direccion           String?               @db.VarChar(255)
+  telefono            String?               @db.VarChar(20)
+  email               String                @unique @db.VarChar(100)
+  historial_prestamos historial_prestamos[]
+  historial_reservas  historial_reservas[]
+  multas              multas[]
+  prestamos           prestamos[]
+  reservas            reservas[]
+  usuarios_roles      usuarios_roles[]
+}
+
+model usuarios_roles {
+  usuario_id Int
+  rol_id     Int
+  roles      roles    @relation(fields: [rol_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  usuarios   usuarios @relation(fields: [usuario_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@id([usuario_id, rol_id])
+}
+
+enum estado_ejemplar {
+  disponible
+  prestado
+  reservado
+  mantenimiento
+}
+
+enum estado_prestamo {
+  pendiente
+  activo
+  devuelto
+  atrasado
+}
+
+enum estado_reserva {
+  pendiente
+  confirmada
+  cancelada
+  expirada
+}
+
+enum tipo_evento {
+  conferencia
+  taller
+  exposicion
+  club_lectura
+}
+
+enum tipo_multa {
+  retraso
+  perdida
+  da_o    @map("daño")
+}
